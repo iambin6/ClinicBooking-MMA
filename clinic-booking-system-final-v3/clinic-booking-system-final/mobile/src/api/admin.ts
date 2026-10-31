@@ -10,6 +10,7 @@ export interface AdminUserItem {
   role?: string;
   userType?: string;
   specialtyName?: string;
+  specialization?: string;
   specialtyId?: number;
   degree?: string;
   experience?: string;
@@ -54,6 +55,7 @@ export interface UpdateDoctorPayload {
   experience?: string;
   description?: string;
   specialtyId?: number;
+  specialization?: string;
 }
 
 export interface UpdateReceptionistPayload {
@@ -72,8 +74,13 @@ export const adminApi = {
     ]);
 
     const users: AdminUserItem[] = usersRes.data?.data || usersRes.data || [];
-    const doctors: AdminUserItem[] = docsRes.data?.data || docsRes.data || [];
+    const rawDoctors: any[] = docsRes.data?.data || docsRes.data || [];
     const receptionists: AdminUserItem[] = recepRes.data?.data || recepRes.data || [];
+
+    const doctors: AdminUserItem[] = rawDoctors.map((d) => ({
+      ...d,
+      specialtyName: d.specialtyName || d.specialization || d.specialty?.name || '',
+    }));
 
     const doctorIds = new Set(doctors.map((d) => d.id));
     const receptionistIds = new Set(receptionists.map((r) => r.id));
@@ -114,7 +121,12 @@ export const adminApi = {
   async getAllDoctors(): Promise<AdminUserItem[]> {
     const res = await apiClient.get('/admin/doctors');
     const list = res.data?.data || res.data || [];
-    return Array.isArray(list) ? list : [];
+    if (!Array.isArray(list)) return [];
+    return list.map((doc: any) => ({
+      ...doc,
+      specialtyName: doc.specialtyName || doc.specialization || doc.specialty?.name || '',
+      specialization: doc.specialization || doc.specialtyName || doc.specialty?.name || '',
+    }));
   },
 
   async updateDoctor(id: number, payload: UpdateDoctorPayload): Promise<any> {

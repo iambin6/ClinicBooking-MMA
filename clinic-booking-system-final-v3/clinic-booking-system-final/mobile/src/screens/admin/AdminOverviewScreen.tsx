@@ -191,7 +191,7 @@ export default function AdminOverviewScreen() {
                     {doc.fullName}
                   </Text>
                   <Text style={[styles.tdTextSpecialty, { flex: 1 }]} numberOfLines={1}>
-                    {doc.specialtyName || 'Đa khoa'}
+                    {doc.specialtyName || doc.specialization || 'Đa khoa'}
                   </Text>
                   <Text style={[styles.tdTextExp, { flex: 1.8 }]} numberOfLines={2}>
                     {doc.experience || '—'}

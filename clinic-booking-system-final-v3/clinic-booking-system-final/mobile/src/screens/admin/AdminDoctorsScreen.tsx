@@ -56,11 +56,25 @@ export default function AdminDoctorsScreen() {
 
   const loadData = async () => {
     try {
-      const [docs, specs] = await Promise.all([
+      const [rawDocs, specs] = await Promise.all([
         adminApi.getAllDoctors(),
         adminApi.getAllSpecialties(),
       ]);
-      setDoctors(docs);
+
+      const enhancedDocs = rawDocs.map((doc) => {
+        const sName = doc.specialtyName || doc.specialization;
+        const matchedSpec = specs.find(
+          (s) => s.name?.toLowerCase().trim() === sName?.toLowerCase().trim()
+        );
+        return {
+          ...doc,
+          specialtyName: sName || (matchedSpec ? matchedSpec.name : ''),
+          specialization: sName || (matchedSpec ? matchedSpec.name : ''),
+          specialtyId: doc.specialtyId || matchedSpec?.id,
+        };
+      });
+
+      setDoctors(enhancedDocs);
       setSpecialties(specs);
     } catch (e) {
       console.error('Error loading doctors data:', e);
@@ -86,6 +100,7 @@ export default function AdminDoctorsScreen() {
       (d) =>
         d.fullName?.toLowerCase().includes(q) ||
         d.specialtyName?.toLowerCase().includes(q) ||
+        d.specialization?.toLowerCase().includes(q) ||
         d.email?.toLowerCase().includes(q) ||
         d.phoneNumber?.includes(q)
     );
@@ -93,12 +108,18 @@ export default function AdminDoctorsScreen() {
 
   // Open Update Modal with prefilled values
   const handleOpenUpdate = (doc: AdminUserItem) => {
+    const sName = doc.specialtyName || doc.specialization;
+    const matchedSpec = specialties.find(
+      (s) => s.name?.toLowerCase().trim() === sName?.toLowerCase().trim()
+    );
+    const resolvedSpecId = doc.specialtyId || matchedSpec?.id;
+
     setUpdateDoctor(doc);
     setUpdateForm({
       fullName: doc.fullName || '',
       phoneNumber: doc.phoneNumber || '',
       gender: (doc.gender as any) || 'Male',
-      specialtyId: doc.specialtyId,
+      specialtyId: resolvedSpecId,
       degree: doc.degree || '',
       experience: doc.experience || '',
       description: doc.description || '',
@@ -151,10 +172,16 @@ export default function AdminDoctorsScreen() {
 
     setSubmitting(true);
     try {
-      await adminApi.updateDoctor(updateDoctor.id, updateForm);
+      const selectedSpec = specialties.find((s) => s.id === updateForm.specialtyId);
+      const payload: UpdateDoctorPayload = {
+        ...updateForm,
+        specialization: selectedSpec?.name,
+      };
+
+      await adminApi.updateDoctor(updateDoctor.id, payload);
       Alert.alert('Thành công', 'Đã cập nhật thông tin bác sĩ thành công!');
       setUpdateDoctor(null);
-      loadData();
+      await loadData();
     } catch (e: any) {
       Alert.alert('Lỗi cập nhật', e?.message || 'Không thể cập nhật thông tin');
     } finally {
@@ -231,7 +258,7 @@ export default function AdminDoctorsScreen() {
                     <Text style={styles.docName}>{doc.fullName}</Text>
                     <View style={styles.specialtyTag}>
                       <Text style={styles.specialtyTagText}>
-                        {doc.specialtyName || 'Chưa phân khoa'}
+                        {doc.specialtyName || doc.specialization || 'Chưa phân khoa'}
                       </Text>
                     </View>
                     {doc.degree ? (
@@ -299,7 +326,7 @@ export default function AdminDoctorsScreen() {
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Chuyên khoa:</Text>
                   <Text style={[styles.detailVal, { color: '#0284c7', fontWeight: '700' }]}>
-                    {detailDoctor.specialtyName || '—'}
+                    {detailDoctor.specialtyName || detailDoctor.specialization || 'Chưa phân khoa'}
                   </Text>
                 </View>
                 <View style={styles.detailRow}>
