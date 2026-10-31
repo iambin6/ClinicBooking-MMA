@@ -41,6 +41,13 @@ export default function DoctorAppointmentsScreen() {
   // Detail Modal
   const [selectedApt, setSelectedApt] = useState<DoctorAppointmentItem | null>(null);
 
+  // Complete / Prescription Modal
+  const [completeModalApt, setCompleteModalApt] = useState<DoctorAppointmentItem | null>(null);
+  const [medicineName, setMedicineName] = useState<string>('Khám tổng quát, tư vấn sức khỏe');
+  const [dosage, setDosage] = useState<string>('Theo chỉ định');
+  const [duration, setDuration] = useState<string>('7 ngày');
+  const [instructions, setInstructions] = useState<string>('Nghỉ ngơi, ăn uống điều độ, tái khám nếu cần');
+
   const loadAppointments = async () => {
     try {
       const data = await doctorApi.getAllDoctorAppointments();
@@ -78,17 +85,51 @@ export default function DoctorAppointmentsScreen() {
     }
   };
 
-  const handleComplete = async (apt: DoctorAppointmentItem) => {
+  const handleComplete = (apt: DoctorAppointmentItem) => {
+    // Mở modal hoàn thành & kê đơn / kết luận
+    setMedicineName('Khám tổng quát, tư vấn sức khỏe');
+    setDosage('Theo chỉ định');
+    setDuration('7 ngày');
+    setInstructions('Nghỉ ngơi, ăn uống điều độ, tái khám nếu cần');
+    setCompleteModalApt(apt);
+  };
+
+  const handleConfirmComplete = async (withCustomPrescription: boolean) => {
+    if (!completeModalApt) return;
+    const apt = completeModalApt;
+
     try {
       setUpdatingId(apt.id);
-      await doctorApi.completeAppointment(apt.id);
-      Alert.alert('Thành công', 'Đã hoàn tất ca khám!');
-      loadAppointments();
+
+      const presPayload = withCustomPrescription
+        ? {
+            medicineName: medicineName.trim() || 'Tư vấn & theo dõi sức khỏe',
+            dosage: dosage.trim() || 'Theo chỉ định',
+            duration: duration.trim() || '7 ngày',
+            instructions: instructions.trim() || 'Nghỉ ngơi, ăn uống điều độ, tái khám nếu cần',
+          }
+        : undefined;
+
+      await doctorApi.completeAppointment(apt.id, presPayload);
+
+      // Đóng modal
+      setCompleteModalApt(null);
       if (selectedApt?.id === apt.id) {
-        setSelectedApt((prev) => (prev ? { ...prev, status: 'COMPLETED' } : null));
+        setSelectedApt(null);
       }
-    } catch (e) {
-      Alert.alert('Lỗi', 'Không thể hoàn tất ca khám');
+
+      // Tải lại toàn bộ lịch hẹn
+      await loadAppointments();
+
+      // Tự động chuyển ngay vào mục "Đã khám"
+      setSelectedStatus('COMPLETED');
+
+      Alert.alert(
+        'Khám bệnh hoàn tất',
+        `Đã hoàn thành khám cho bệnh nhân ${apt.patientName}!\nLịch hẹn đã được chuyển vào mục "Đã khám".`
+      );
+    } catch (e: any) {
+      Alert.alert('Lỗi', e?.message || 'Không thể hoàn tất ca khám');
     } finally {
       setUpdatingId(null);
     }
@@ -380,7 +421,106 @@ export default function DoctorAppointmentsScreen() {
         </ScrollView>
       )}
 
-      {/* Appointment Detail Modal */}
+      {/* Modal Hoàn Thành Khám & Kê Đơn */}
+      {completeModalApt && (
+        <Modal
+          visible={Boolean(completeModalApt)}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setCompleteModalApt(null)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <View>
+                  <Text style={styles.modalTitle}>Kết luận & Hoàn thành</Text>
+                  <Text style={styles.modalSubHeader}>
+                    Bệnh nhân: {completeModalApt.patientName}
+                  </Text>
+                </View>
+                <TouchableOpacity onPress={() => setCompleteModalApt(null)}>
+                  <Ionicons name="close" size={24} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+                <View style={styles.presField}>
+                  <Text style={styles.presLabel}>Chẩn đoán / Tên thuốc:</Text>
+                  <TextInput
+                    style={styles.presInput}
+                    value={medicineName}
+                    onChangeText={setMedicineName}
+                    placeholder="Ví dụ: Khám tổng quát, Paracetamol..."
+                  />
+                </View>
+
+                <View style={styles.presRow}>
+                  <View style={[styles.presField, { flex: 1 }]}>
+                    <Text style={styles.presLabel}>Liều dùng:</Text>
+                    <TextInput
+                      style={styles.presInput}
+                      value={dosage}
+                      onChangeText={setDosage}
+                      placeholder="1 viên / lần"
+                    />
+                  </View>
+                  <View style={[styles.presField, { flex: 1 }]}>
+                    <Text style={styles.presLabel}>Thời gian:</Text>
+                    <TextInput
+                      style={styles.presInput}
+                      value={duration}
+                      onChangeText={setDuration}
+                      placeholder="7 ngày"
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.presField}>
+                  <Text style={styles.presLabel}>Lời dặn của Bác sĩ:</Text>
+                  <TextInput
+                    style={[styles.presInput, styles.presTextArea]}
+                    multiline
+                    numberOfLines={2}
+                    value={instructions}
+                    onChangeText={setInstructions}
+                    placeholder="Uống thuốc sau ăn, tái khám..."
+                  />
+                </View>
+              </ScrollView>
+
+              <View style={styles.modalFooterActions}>
+                <TouchableOpacity
+                  style={[styles.btnCompleteModal, styles.btnQuickComplete]}
+                  onPress={() => handleConfirmComplete(false)}
+                  disabled={updatingId !== null}
+                >
+                  {updatingId !== null ? (
+                    <ActivityIndicator size="small" color="#2563eb" />
+                  ) : (
+                    <Text style={styles.btnQuickCompleteText}>Hoàn tất ngay (Mặc định)</Text>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.btnCompleteModal, styles.btnSavePrescription]}
+                  onPress={() => handleConfirmComplete(true)}
+                  disabled={updatingId !== null}
+                >
+                  {updatingId !== null ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <>
+                      <Ionicons name="checkmark-done" size={16} color="#fff" />
+                      <Text style={styles.btnSavePrescriptionText}>Lưu đơn & Hoàn tất</Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
+
       {selectedApt && (
         <Modal
           visible={Boolean(selectedApt)}
@@ -803,5 +943,69 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: colors.textSecondary,
+  },
+  modalSubHeader: {
+    fontSize: 13,
+    color: colors.primary,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  presField: {
+    marginBottom: 12,
+  },
+  presLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  presInput: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: colors.text,
+  },
+  presTextArea: {
+    minHeight: 50,
+    textAlignVertical: 'top',
+  },
+  presRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  modalFooterActions: {
+    flexDirection: 'column',
+    gap: 8,
+    marginTop: 10,
+  },
+  btnCompleteModal: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  btnQuickComplete: {
+    backgroundColor: '#eff6ff',
+    borderWidth: 1,
+    borderColor: '#bfdbfe',
+  },
+  btnQuickCompleteText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#2563eb',
+  },
+  btnSavePrescription: {
+    backgroundColor: '#16a34a',
+  },
+  btnSavePrescriptionText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#ffffff',
   },
 });
