@@ -63,8 +63,14 @@ export default function LoginScreen({ navigation }: any) {
     try {
       const loggedInUser = await login({ email: cleanEmail, password: cleanPass });
       
-      // Chuyển hướng theo vai trò (Bác sĩ -> DoctorTabs, Bệnh nhân -> MainTabs)
-      const targetRoute = loggedInUser?.userType === 'Doctor' ? 'DoctorTabs' : 'MainTabs';
+      // Chuyển hướng theo vai trò (Admin -> AdminTabs, Bác sĩ -> DoctorTabs, Bệnh nhân -> MainTabs)
+      let targetRoute = 'MainTabs';
+      if (loggedInUser?.userType === 'Admin') {
+        targetRoute = 'AdminTabs';
+      } else if (loggedInUser?.userType === 'Doctor') {
+        targetRoute = 'DoctorTabs';
+      }
+
       navigation.reset({
         index: 0,
         routes: [{ name: targetRoute }],
@@ -164,6 +170,45 @@ export default function LoginScreen({ navigation }: any) {
               <TouchableOpacity onPress={() => navigation.navigate('Register')}>
                 <Text style={styles.registerLink}>Đăng ký ngay</Text>
               </TouchableOpacity>
+            </View>
+
+            {/* Quick Fill Demo Roles */}
+            <View style={styles.demoSection}>
+              <Text style={styles.demoTitle}>Tài khoản mẫu:</Text>
+              <View style={styles.demoBtnRow}>
+                <TouchableOpacity
+                  style={[styles.demoChip, { borderColor: '#93c5fd', backgroundColor: '#eff6ff' }]}
+                  onPress={() => {
+                    setEmail('admin@clinicbooking.com');
+                    setPassword('123456');
+                  }}
+                >
+                  <Ionicons name="shield-checkmark" size={13} color="#2563eb" />
+                  <Text style={[styles.demoChipText, { color: '#2563eb' }]}>Admin</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.demoChip, { borderColor: '#bbf7d0', backgroundColor: '#f0fdf4' }]}
+                  onPress={() => {
+                    setEmail('bacsi.demo01@example.com');
+                    setPassword('123456');
+                  }}
+                >
+                  <Ionicons name="medkit" size={13} color="#16a34a" />
+                  <Text style={[styles.demoChipText, { color: '#16a34a' }]}>Bác sĩ</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.demoChip, { borderColor: '#e2e8f0', backgroundColor: '#f8fafc' }]}
+                  onPress={() => {
+                    setEmail('miraisan2512@gmail.com');
+                    setPassword('123456');
+                  }}
+                >
+                  <Ionicons name="person" size={13} color="#475569" />
+                  <Text style={[styles.demoChipText, { color: '#475569' }]}>Bệnh nhân</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
 
@@ -441,6 +486,37 @@ const styles = StyleSheet.create({
   },
   modalSaveText: {
     color: colors.white,
+    fontWeight: '700',
+  },
+  demoSection: {
+    marginTop: 18,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+  },
+  demoTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  demoBtnRow: {
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center',
+  },
+  demoChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  demoChipText: {
+    fontSize: 12,
     fontWeight: '700',
   },
 });
