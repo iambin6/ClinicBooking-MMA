@@ -61,12 +61,13 @@ export default function LoginScreen({ navigation }: any) {
 
     setLoading(true);
     try {
-      await login({ email: cleanEmail, password: cleanPass });
+      const loggedInUser = await login({ email: cleanEmail, password: cleanPass });
       
-      // Chuyển hướng ngay lập tức vào màn hình chính (MainTabs)
+      // Chuyển hướng theo vai trò (Bác sĩ -> DoctorTabs, Bệnh nhân -> MainTabs)
+      const targetRoute = loggedInUser?.userType === 'Doctor' ? 'DoctorTabs' : 'MainTabs';
       navigation.reset({
         index: 0,
-        routes: [{ name: 'MainTabs' }],
+        routes: [{ name: targetRoute }],
       });
     } catch (e: any) {
       Alert.alert(

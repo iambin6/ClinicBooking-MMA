@@ -10,6 +10,15 @@ export const TOKEN_KEY = 'clinic_auth_token';
 export const USER_KEY = 'clinic_user_data';
 export const API_URL_KEY = 'clinic_api_url';
 
+export async function getApiBaseUrl(): Promise<string> {
+  const custom = await AsyncStorage.getItem(API_URL_KEY);
+  return custom || DEFAULT_API_URL;
+}
+
+export async function setApiBaseUrl(url: string): Promise<void> {
+  await AsyncStorage.setItem(API_URL_KEY, url);
+}
+
 export const apiClient = axios.create({
   baseURL: DEFAULT_API_URL,
   headers: {
