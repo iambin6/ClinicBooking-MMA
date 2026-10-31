@@ -160,6 +160,7 @@ export default function RootNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator
+        key={user ? `auth-${user.userType}-${user.id}` : 'guest'}
         initialRouteName={getInitialRouteName()}
         screenOptions={{ headerShown: false }}
       >

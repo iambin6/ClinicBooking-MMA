@@ -146,7 +146,13 @@ export default function DoctorOverviewScreen() {
                 {
                   text: 'Đăng xuất',
                   style: 'destructive',
-                  onPress: () => logout(),
+                  onPress: async () => {
+                    await logout();
+                    navigation.reset({
+                      index: 0,
+                      routes: [{ name: 'Login' }],
+                    });
+                  },
                 },
               ]);
             }}

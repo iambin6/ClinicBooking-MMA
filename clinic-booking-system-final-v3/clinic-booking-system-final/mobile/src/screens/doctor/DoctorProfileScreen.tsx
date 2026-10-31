@@ -14,9 +14,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../contexts/AuthContext';
 import { getApiBaseUrl, setApiBaseUrl } from '../../api/client';
+import { useNavigation } from '@react-navigation/native';
 
 export default function DoctorProfileScreen() {
   const { user, logout } = useAuth();
+  const navigation = useNavigation<any>();
 
   const [ipModalVisible, setIpModalVisible] = useState(false);
   const [currentUrl, setCurrentUrl] = useState('');
@@ -42,7 +44,13 @@ export default function DoctorProfileScreen() {
       {
         text: 'Đăng xuất',
         style: 'destructive',
-        onPress: () => logout(),
+        onPress: async () => {
+          await logout();
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'Login' }],
+          });
+        },
       },
     ]);
   };
