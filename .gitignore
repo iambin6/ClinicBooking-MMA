@@ -1,0 +1,13 @@
+# Local DB backups and dumps
+*.sql
+backup_before_import.sql
+
+# Secret credentials
+*.env
+.env
+application-secret.properties
+*.properties.secret
+
+# OS Files
+.DS_Store
+Thumbs.db
